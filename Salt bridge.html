@@ -1,0 +1,93 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HKDSE Chemistry: Function of a Salt Bridge</title>
+    
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Custom Styles -->
+    <link rel="stylesheet" href="css/styles.css">
+
+    <!-- MathJax for Chemical Equations -->
+    <script>
+        MathJax = {
+            tex: {
+                inlineMath: [['\\(', '\\)']],
+                displayMath: [['$$', '$$']],
+                packages: {'[+]': ['mhchem']}
+            },
+            loader: {load: ['[tex]/mhchem']}
+        };
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans min-h-screen flex flex-col">
+
+    <!-- Header -->
+    <header class="bg-blue-800 text-white shadow-lg">
+        <div class="max-w-6xl mx-auto px-4 py-6">
+            <div class="flex items-center gap-3 mb-2">
+                <span class="bg-blue-600 text-xs font-bold px-2 py-1 rounded uppercase tracking-wider">HKDSE Topic 7</span>
+                <span class="bg-indigo-600 text-xs font-bold px-2 py-1 rounded uppercase tracking-wider">Chemical Cells</span>
+            </div>
+            <h1 class="text-3xl md:text-4xl font-extrabold flex items-center gap-3">
+                <i class="fa-solid fa-bridge-water"></i> The Function of a Salt Bridge
+            </h1>
+            <p class="mt-2 text-blue-200">Interactive simulation of electron and ion flow in a Galvanic Cell.</p>
+        </div>
+    </header>
+
+    <!-- Main Content area -->
+    <main class="flex-grow max-w-6xl mx-auto px-4 py-8 w-full flex flex-col md:flex-row gap-6">
+        
+        <!-- Sidebar Navigation -->
+        <nav class="md:w-1/4 flex-shrink-0">
+            <div class="bg-white rounded-xl shadow-md p-2 flex flex-col space-y-1 sticky top-6 border border-slate-200">
+                <button onclick="switchTab('concepts')" id="btn-concepts" class="tab-btn w-full text-left px-4 py-3 rounded-lg font-semibold transition-colors bg-blue-100 text-blue-800 flex items-center gap-3">
+                    <i class="fa-solid fa-book w-5 text-center"></i> Concepts
+                </button>
+                <button onclick="switchTab('simulation')" id="btn-simulation" class="tab-btn w-full text-left px-4 py-3 rounded-lg font-semibold text-slate-600 hover:bg-slate-100 transition-colors flex items-center gap-3">
+                    <i class="fa-solid fa-bolt w-5 text-center"></i> Interactive Simulation
+                </button>
+                <button onclick="switchTab('exam')" id="btn-exam" class="tab-btn w-full text-left px-4 py-3 rounded-lg font-semibold text-slate-600 hover:bg-slate-100 transition-colors flex items-center gap-3">
+                    <i class="fa-solid fa-pen-to-square w-5 text-center"></i> Exam Challenge
+                </button>
+                <button onclick="switchTab('misconceptions')" id="btn-misconceptions" class="tab-btn w-full text-left px-4 py-3 rounded-lg font-semibold text-slate-600 hover:bg-slate-100 transition-colors flex items-center gap-3">
+                    <i class="fa-solid fa-circle-exclamation w-5 text-center"></i> Misconceptions
+                </button>
+                <button onclick="switchTab('summary')" id="btn-summary" class="tab-btn w-full text-left px-4 py-3 rounded-lg font-semibold text-slate-600 hover:bg-slate-100 transition-colors flex items-center gap-3">
+                    <i class="fa-solid fa-list-check w-5 text-center"></i> Summary
+                </button>
+                <button onclick="switchTab('quiz')" id="btn-quiz" class="tab-btn w-full text-left px-4 py-3 rounded-lg font-semibold text-slate-600 hover:bg-slate-100 transition-colors flex items-center gap-3">
+                    <i class="fa-solid fa-stopwatch w-5 text-center"></i> Consolidation Quiz
+                </button>
+            </div>
+        </nav>
+
+        <!-- Tab Contents -->
+        <div class="md:w-3/4 bg-white rounded-xl shadow-md border border-slate-200 p-6 md:p-8 min-h-[500px]">
+
+            <!-- Each tab div is an empty shell; content is loaded dynamically by tabs.js -->
+            <div id="tab-concepts"       class="tab-content"></div>
+            <div id="tab-simulation"     class="tab-content"></div>
+            <div id="tab-exam"           class="tab-content"></div>
+            <div id="tab-misconceptions" class="tab-content"></div>
+            <div id="tab-summary"        class="tab-content"></div>
+            <div id="tab-quiz"           class="tab-content"></div>
+
+        </div>
+    </main>
+
+    <!-- JavaScript -->
+    <script src="js/simulation.js"></script>
+    <script src="js/quiz.js"></script>
+    <script src="js/exam.js"></script>
+    <script src="js/tabs.js"></script>
+</body>
+</html>
