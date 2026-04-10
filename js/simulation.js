@@ -14,6 +14,7 @@ let simInitialised = false;
 // --- Salt bridge & charge imbalance state ---
 let saltBridgePresent = true;
 let chargeImbalance = 0; // 0–100: how much charge has built up due to missing bridge
+let showCircuitExplain = false;  // toggle for ionic circuit explanation overlay
 
 // Fixed canvas-fraction positions for charge accumulation symbols inside each beaker.
 // Anode beaker (x: 10%–40%), avoiding electrode (x: 22%–28%).
@@ -282,6 +283,9 @@ function drawScene() {
     });
 
     particles = particles.filter(p => p.progress <= 1);
+
+    // --- Circuit explanation overlay (drawn last, on top of everything) ---
+    if (showCircuitExplain) drawCircuitAnnotations();
 }
 
 // ---------------------------------------------------------------------------
@@ -318,6 +322,120 @@ function updateInfoPanel() {
     } else {
         panel.className = 'mt-4 p-4 rounded-xl border text-sm font-medium bg-red-100 border-red-500 text-red-900';
         panel.innerHTML = '<i class="fa-solid fa-circle-xmark mr-2 text-red-600"></i><strong>CELL DEAD — Voltage = 0 V.</strong> The charge imbalance has completely cancelled the redox driving force and electron flow has stopped. This is why the salt bridge is essential: it neutralises the charge buildup and keeps the circuit alive.';
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Circuit explanation overlay
+// ---------------------------------------------------------------------------
+
+function toggleCircuitExplain() {
+    showCircuitExplain = !showCircuitExplain;
+    const panel = document.getElementById('circuit-explain-panel');
+    const btn   = document.getElementById('btn-explain');
+    if (panel) panel.classList.toggle('hidden', !showCircuitExplain);
+    if (btn) {
+        if (showCircuitExplain) {
+            btn.innerHTML = '<i class="fa-solid fa-circle-nodes"></i> Hide Explanation';
+            btn.className = 'bg-violet-800 hover:bg-violet-900 text-white px-4 py-2 rounded shadow font-semibold flex items-center gap-2';
+        } else {
+            btn.innerHTML = '<i class="fa-solid fa-circle-nodes"></i> Explain Circuit';
+            btn.className = 'bg-violet-600 hover:bg-violet-700 text-white px-4 py-2 rounded shadow font-semibold flex items-center gap-2';
+        }
+    }
+    drawScene();
+}
+
+/**
+ * Draws numbered badges ①–④ and dashed flow arrows on the canvas to show:
+ *   ① Oxidation at Zn  ② e⁻ through wire  ③ Reduction at Cu  ④ Ionic charge balance via salt bridge
+ */
+function drawCircuitAnnotations() {
+    const cw = canvas.width, ch = canvas.height;
+    const fs = cw * 0.021;
+
+    // ─── Helper: filled circle badge ──────────────────────────────────────
+    function badge(x, y, label, color) {
+        const r = cw * 0.024;
+        ctx.shadowColor = 'rgba(0,0,0,0.55)';
+        ctx.shadowBlur  = 5;
+        ctx.fillStyle   = color;
+        ctx.strokeStyle = 'rgba(0,0,0,0.5)';
+        ctx.lineWidth   = 1.5;
+        ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+        ctx.shadowBlur  = 0;
+        ctx.fillStyle   = '#fff';
+        ctx.font        = `bold ${fs}px Arial`;
+        ctx.textAlign   = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(label, x, y);
+    }
+
+    // ─── Helper: dashed directional arrow with optional side label ─────────
+    function dashedArrow(x1, y1, x2, y2, color, lbl, lblSide) {
+        const hs = cw * 0.013;
+        const angle = Math.atan2(y2 - y1, x2 - x1);
+        ctx.strokeStyle = color;
+        ctx.lineWidth   = 2.5;
+        ctx.lineCap     = 'round';
+        ctx.setLineDash([7, 4]);
+        ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+        ctx.setLineDash([]); ctx.lineCap = 'butt';
+        // Arrowhead
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.moveTo(x2, y2);
+        ctx.lineTo(x2 - hs * Math.cos(angle - 0.45), y2 - hs * Math.sin(angle - 0.45));
+        ctx.lineTo(x2 - hs * Math.cos(angle + 0.45), y2 - hs * Math.sin(angle + 0.45));
+        ctx.closePath(); ctx.fill();
+        // Side label
+        if (lbl) {
+            const mx = (x1 + x2) / 2, my = (y1 + y2) / 2;
+            const off = cw * 0.03;
+            ctx.fillStyle    = color;
+            ctx.font         = `bold ${fs * 0.85}px Arial`;
+            ctx.textBaseline = 'middle';
+            if (lblSide === 'right')  { ctx.textAlign = 'left';   ctx.fillText(lbl, mx + off, my); }
+            else if (lblSide === 'left')   { ctx.textAlign = 'right';  ctx.fillText(lbl, mx - off, my); }
+            else if (lblSide === 'above')  { ctx.textAlign = 'center'; ctx.fillText(lbl, mx, my - off); }
+        }
+    }
+
+    // ── ① Oxidation badge — above Zn electrode ────────────────────────────
+    badge(cw * 0.25, ch * 0.27, '\u2460', '#d97706');
+
+    // ── ② e⁻ arrows along wire + badge above voltmeter ───────────────────
+    const eCol = 'rgba(234,179,8,0.92)';
+    dashedArrow(cw * 0.27, ch * 0.13, cw * 0.44, ch * 0.13, eCol, null, null);
+    dashedArrow(cw * 0.56, ch * 0.13, cw * 0.73, ch * 0.13, eCol, null, null);
+    badge(cw * 0.5, ch * 0.055, '\u2461', '#d97706');
+    // Electron flow label
+    ctx.fillStyle    = eCol;
+    ctx.font         = `bold ${fs * 0.78}px Arial`;
+    ctx.textAlign    = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('e\u207b  (electrical current)', cw * 0.5, ch * 0.10);
+
+    // ── ③ Reduction badge — above Cu electrode ────────────────────────────
+    badge(cw * 0.75, ch * 0.27, '\u2462', '#d97706');
+
+    // ── ④ Ionic charge-balance arrows — only drawn when bridge is present ─
+    if (saltBridgePresent) {
+        // K⁺ travels down the right arm of the bridge → into cathode half-cell
+        dashedArrow(cw * 0.645, ch * 0.38, cw * 0.645, ch * 0.65, 'rgba(192,132,252,0.9)', 'K\u207a', 'right');
+        badge(cw * 0.715, ch * 0.50, '\u2463', '#7c3aed');
+
+        // NO₃⁻ travels down the left arm of the bridge → into anode half-cell
+        dashedArrow(cw * 0.355, ch * 0.38, cw * 0.355, ch * 0.65, 'rgba(74,222,128,0.9)', 'NO\u2083\u207b', 'left');
+        badge(cw * 0.285, ch * 0.50, '\u2463', '#15803d');
+    } else {
+        // Bridge absent: show ④ badge with a cross to indicate ionic path is broken
+        badge(cw * 0.5, ch * 0.50, '\u2463', '#6b7280');
+        ctx.fillStyle    = 'rgba(239,68,68,0.85)';
+        ctx.font         = `bold ${fs * 0.8}px Arial`;
+        ctx.textAlign    = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('ionic path broken \u2014 circuit incomplete!', cw * 0.5, ch * 0.56);
     }
 }
 

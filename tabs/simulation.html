@@ -12,6 +12,9 @@
         <button id="btn-salt-bridge" onclick="toggleSaltBridge()" class="bg-rose-600 hover:bg-rose-700 text-white px-4 py-2 rounded shadow font-semibold flex items-center gap-2">
             <i class="fa-solid fa-link-slash"></i> Remove Salt Bridge
         </button>
+        <button id="btn-explain" onclick="toggleCircuitExplain()" class="bg-violet-600 hover:bg-violet-700 text-white px-4 py-2 rounded shadow font-semibold flex items-center gap-2">
+            <i class="fa-solid fa-circle-nodes"></i> Explain Circuit
+        </button>
     </div>
 
     <div class="flex flex-wrap items-center gap-3 text-sm font-semibold">
@@ -31,4 +34,64 @@
 <!-- Dynamic consequence explanation panel -->
 <div id="consequence-panel" class="mt-4 p-4 rounded-xl border text-sm font-medium bg-slate-100 border-slate-200 text-slate-600">
     <i class="fa-solid fa-circle-info mr-2"></i>Press <strong>Play</strong> to start. Try removing the salt bridge while running to see what happens!
+</div>
+
+<!-- Circuit explanation: how ionic flow completes the circuit (shown when Explain Circuit toggled) -->
+<div id="circuit-explain-panel" class="hidden mt-4">
+    <div class="bg-slate-800 rounded-xl border border-slate-600 p-4">
+        <h3 class="text-slate-100 font-bold text-sm mb-3 flex items-center gap-2">
+            <i class="fa-solid fa-circle-nodes text-violet-400"></i>
+            How does ionic flow complete the circuit?
+            <span class="text-slate-400 font-normal text-xs">(circled numbers match the canvas overlay)</span>
+        </h3>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+
+            <!-- Step 1: Oxidation -->
+            <div class="bg-amber-900/40 border border-amber-600/40 rounded-lg p-3">
+                <div class="flex items-center gap-2 mb-1">
+                    <span class="w-6 h-6 rounded-full bg-amber-500 text-white font-bold text-xs flex items-center justify-center flex-shrink-0">①</span>
+                    <span class="text-amber-200 font-semibold">Oxidation at the Zn anode</span>
+                </div>
+                <p class="text-amber-100/80 leading-relaxed">Zn → Zn²⁺ + 2e⁻. Each zinc atom that dissolves releases 2 electrons into the wire <em>and</em> leaves a Zn²⁺ ion in solution — making the anode half-cell increasingly positive.</p>
+            </div>
+
+            <!-- Step 2: Electrons -->
+            <div class="bg-amber-900/40 border border-amber-600/40 rounded-lg p-3">
+                <div class="flex items-center gap-2 mb-1">
+                    <span class="w-6 h-6 rounded-full bg-amber-500 text-white font-bold text-xs flex items-center justify-center flex-shrink-0">②</span>
+                    <span class="text-amber-200 font-semibold">Electrons flow through the wire</span>
+                </div>
+                <p class="text-amber-100/80 leading-relaxed">The 2e⁻ travel through the external wire from Zn to Cu — this movement of electrons <em>is</em> the electric current measured by the voltmeter. No ions are involved here.</p>
+            </div>
+
+            <!-- Step 3: Reduction -->
+            <div class="bg-amber-900/40 border border-amber-600/40 rounded-lg p-3">
+                <div class="flex items-center gap-2 mb-1">
+                    <span class="w-6 h-6 rounded-full bg-amber-500 text-white font-bold text-xs flex items-center justify-center flex-shrink-0">③</span>
+                    <span class="text-amber-200 font-semibold">Reduction at the Cu cathode</span>
+                </div>
+                <p class="text-amber-100/80 leading-relaxed">Cu²⁺ + 2e⁻ → Cu. Electrons arrive and reduce Cu²⁺ ions out of solution — removing positive charge from the cathode half-cell and making it increasingly negative.</p>
+            </div>
+
+            <!-- Step 4: Salt bridge -->
+            <div class="bg-violet-900/40 border border-violet-500/40 rounded-lg p-3">
+                <div class="flex items-center gap-2 mb-1">
+                    <span class="w-6 h-6 rounded-full bg-violet-600 text-white font-bold text-xs flex items-center justify-center flex-shrink-0">④</span>
+                    <span class="text-violet-200 font-semibold">Salt bridge restores charge balance</span>
+                </div>
+                <p class="text-violet-100/80 leading-relaxed">
+                    <strong class="text-purple-300">K⁺</strong> migrates from the bridge into the cathode — replacing the lost Cu²⁺ charge.
+                    <strong class="text-green-300">NO₃⁻</strong> migrates into the anode — neutralising the excess Zn²⁺ charge.
+                    Both half-cells stay electrically neutral.
+                </p>
+            </div>
+        </div>
+
+        <!-- Key concept -->
+        <div class="mt-3 bg-blue-950/60 border border-blue-400/40 rounded-lg p-3 text-sm">
+            <i class="fa-solid fa-lightbulb text-yellow-400 mr-2"></i>
+            <strong class="text-blue-200">Key concept:</strong>
+            <span class="text-slate-300"> Ions do <em>not</em> carry the same electrons round a loop. They carry <strong class="text-white">charge</strong> by physically migrating to erase the charge imbalance that would otherwise create a back-EMF and halt electron flow. Think of it as a <strong class="text-white">charge relay</strong>: electrons run the outside lane, ions run the inside lane — together they keep the circuit alive.</span>
+        </div>
+    </div>
 </div>
