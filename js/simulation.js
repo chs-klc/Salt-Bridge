@@ -471,7 +471,7 @@ function drawCircuitAnnotations() {
     ctx.font         = `bold ${fs * 0.78}px Arial`;
     ctx.textAlign    = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText('e\u207b  (electrical current)', cw * 0.5, ch * 0.10);
+    ctx.fillText('e\u207b  (flow of electrons)', cw * 0.5, ch * 0.10);
 
     // ── ③ Reduction badge — above Cu electrode ────────────────────────────
     badge(cw * 0.75, ch * 0.27, '\u2462', '#d97706');
