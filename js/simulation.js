@@ -15,6 +15,7 @@ let simInitialised = false;
 let saltBridgePresent = true;
 let chargeImbalance = 0; // 0–100: how much charge has built up due to missing bridge
 let showCircuitExplain = false;  // toggle for ionic circuit explanation overlay
+let bridgeFluid = 'kno3';        // 'kno3' | 'water' — what fills the salt bridge
 
 // Fixed canvas-fraction positions for charge accumulation symbols inside each beaker.
 // Anode beaker (x: 10%–40%), avoiding electrode (x: 22%–28%).
@@ -31,6 +32,11 @@ const CATHODE_CHARGE_POS = [
 /** Returns the current effective voltage level: 1 = full, 0 = dead. */
 function getVoltageLevel() {
     return Math.max(0, 1 - chargeImbalance / 100);
+}
+
+/** True when the bridge can actually carry ions (present AND filled with KNO₃). */
+function bridgeConductive() {
+    return saltBridgePresent && bridgeFluid === 'kno3';
 }
 
 // ---------------------------------------------------------------------------
@@ -142,7 +148,6 @@ function drawScene() {
     ctx.fillText('V', cw*0.5, ch*0.15);
 
     // Voltmeter needle: interpolates between center (0V) and full deflection based on v
-    // Center tip = (cw*0.5, ch*0.11), Full deflection tip = (cw*0.53, ch*0.12)
     const vDisplay = isPlaying ? v : 0;
     ctx.strokeStyle = '#ef4444';
     ctx.lineWidth = 2;
@@ -151,16 +156,39 @@ function drawScene() {
     ctx.lineTo(cw*(0.5 + 0.03*vDisplay), ch*(0.11 + 0.01*vDisplay));
     ctx.stroke();
 
+    // --- Voltmeter digital LCD readout (below voltmeter circle) ---
+    const voltReading = (1.10 * vDisplay).toFixed(2); // Zn/Cu cell ≈ 1.10 V max
+    const lcdW = cw * 0.10, lcdH = ch * 0.065;
+    const lcdX = cw * 0.5 - lcdW / 2, lcdY = ch * 0.205;
+    // LCD background
+    ctx.fillStyle = '#0f1a0f';
+    ctx.strokeStyle = vDisplay > 0.05 ? '#4ade80' : '#374151';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.roundRect(lcdX, lcdY, lcdW, lcdH, 4);
+    ctx.fill(); ctx.stroke();
+    // LCD digits
+    ctx.fillStyle = vDisplay > 0.05 ? '#4ade80' : '#1f2d1f';
+    ctx.font = `bold ${cw * 0.028}px 'Courier New', monospace`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(`${voltReading} V`, cw * 0.5, lcdY + lcdH * 0.5);
+
     // --- Salt Bridge ---
     if (saltBridgePresent) {
+        // Fill colour: KNO₃ = translucent white, water = light blue
+        const bridgeFill = bridgeFluid === 'kno3'
+            ? 'rgba(248, 250, 252, 0.3)'
+            : 'rgba(125, 211, 252, 0.35)';
         ctx.lineWidth = 20;
-        ctx.strokeStyle = 'rgba(248, 250, 252, 0.3)';
+        ctx.strokeStyle = bridgeFill;
         ctx.lineCap = 'round'; ctx.lineJoin = 'round';
         ctx.beginPath();
         ctx.moveTo(cw*0.35,ch*0.7); ctx.lineTo(cw*0.35,ch*0.35);
         ctx.lineTo(cw*0.65,ch*0.35); ctx.lineTo(cw*0.65,ch*0.7);
         ctx.stroke();
-        ctx.lineWidth = 2; ctx.strokeStyle = '#94a3b8'; ctx.lineCap = 'butt';
+        // Outline colour: KNO₃ = grey, water = cyan
+        const bridgeOutline = bridgeFluid === 'kno3' ? '#94a3b8' : '#22d3ee';
+        ctx.lineWidth = 2; ctx.strokeStyle = bridgeOutline; ctx.lineCap = 'butt';
         ctx.beginPath(); ctx.moveTo(cw*0.33,ch*0.7); ctx.lineTo(cw*0.33,ch*0.33); ctx.lineTo(cw*0.67,ch*0.33); ctx.lineTo(cw*0.67,ch*0.7); ctx.stroke();
         ctx.beginPath(); ctx.moveTo(cw*0.37,ch*0.7); ctx.lineTo(cw*0.37,ch*0.37); ctx.lineTo(cw*0.63,ch*0.37); ctx.lineTo(cw*0.63,ch*0.7); ctx.stroke();
     } else {
@@ -218,9 +246,15 @@ function drawScene() {
     ctx.fillText('Reduction',          cw*0.75, ch*0.95);
 
     if (saltBridgePresent) {
-        ctx.fillStyle = '#e2e8f0';
-        ctx.font = `italic ${cw*0.025}px Arial`;
-        ctx.fillText('Salt Bridge (KNO₃)', cw*0.5, ch*0.28);
+        if (bridgeFluid === 'kno3') {
+            ctx.fillStyle = '#e2e8f0';
+            ctx.font = `italic ${cw*0.025}px Arial`;
+            ctx.fillText('Salt Bridge (KNO₃)', cw*0.5, ch*0.28);
+        } else {
+            ctx.fillStyle = '#7dd3fc';
+            ctx.font = `bold ${cw*0.025}px Arial`;
+            ctx.fillText('Bridge: Distilled H₂O ✗', cw*0.5, ch*0.28);
+        }
     } else {
         ctx.fillStyle = '#fca5a5';
         ctx.font = `bold ${cw*0.025}px Arial`;
@@ -298,13 +332,36 @@ function updateInfoPanel() {
     const v = getVoltageLevel();
     const vPct = Math.round(v * 100);
 
-    if (saltBridgePresent) {
+    if (saltBridgePresent && bridgeFluid === 'kno3') {
         if (!isPlaying) {
             panel.className = 'mt-4 p-4 rounded-xl border text-sm font-medium bg-slate-100 border-slate-200 text-slate-600';
-            panel.innerHTML = '<i class="fa-solid fa-circle-info mr-2"></i>Press <strong>Play</strong> to start. Try removing the salt bridge while running to see what happens!';
+            panel.innerHTML = '<i class="fa-solid fa-circle-info mr-2"></i>Press <strong>Play</strong> to start. Try removing the salt bridge or switching to distilled water!';
         } else {
             panel.className = 'mt-4 p-4 rounded-xl border text-sm font-medium bg-emerald-50 border-emerald-300 text-emerald-800';
-            panel.innerHTML = '<i class="fa-solid fa-circle-check mr-2 text-emerald-600"></i><strong>Circuit complete.</strong> K⁺ and NO₃⁻ ions flow through the salt bridge, neutralising charge buildup in both half-cells. Electrons flow steadily. Voltage is stable.';
+            panel.innerHTML = '<i class="fa-solid fa-circle-check mr-2 text-emerald-600"></i><strong>Circuit complete.</strong> K⁺ and NO₃⁻ ions flow through the KNO₃ bridge, neutralising charge buildup. Electrons flow steadily. Voltage is stable at <strong>1.10 V</strong>.';
+        }
+        return;
+    }
+
+    // Bridge present but filled with distilled water — same consequence as removed bridge
+    if (saltBridgePresent && bridgeFluid === 'water') {
+        const vPct = Math.round(getVoltageLevel() * 100);
+        const vV   = (1.10 * getVoltageLevel()).toFixed(2);
+        if (!isPlaying) {
+            panel.className = 'mt-4 p-4 rounded-xl border text-sm font-medium bg-cyan-50 border-cyan-300 text-cyan-800';
+            panel.innerHTML = '<i class="fa-solid fa-droplet mr-2 text-cyan-500"></i><strong>Distilled water selected.</strong> Distilled water contains almost no ions (H⁺ and OH⁻ only at vanishingly low concentration). Press <strong>Play</strong> to observe the effect.';
+        } else if (chargeImbalance < 25) {
+            panel.className = 'mt-4 p-4 rounded-xl border text-sm font-medium bg-cyan-50 border-cyan-300 text-cyan-800';
+            panel.innerHTML = `<i class="fa-solid fa-droplet mr-2 text-cyan-500"></i><strong>Distilled water carries no ions!</strong> Without mobile ions, the bridge cannot neutralise the growing charge imbalance. Voltage: <strong>${vV} V</strong> (${vPct}%)`;
+        } else if (chargeImbalance < 60) {
+            panel.className = 'mt-4 p-4 rounded-xl border text-sm font-medium bg-orange-50 border-orange-300 text-orange-800';
+            panel.innerHTML = `<i class="fa-solid fa-triangle-exclamation mr-2 text-orange-500"></i><strong>Charge imbalance building!</strong> Distilled water has no free ions to migrate. An ionic compound like KNO₃ is needed. Voltage: <strong>${vV} V</strong> (${vPct}%)`;
+        } else if (chargeImbalance < 98) {
+            panel.className = 'mt-4 p-4 rounded-xl border text-sm font-medium bg-red-50 border-red-300 text-red-800';
+            panel.innerHTML = `<i class="fa-solid fa-circle-xmark mr-2 text-red-500"></i><strong>Cell almost dead!</strong> Even with the bridge tube in place, water provides no charge carriers. Only an <strong>ionic solution</strong> can complete the circuit. Voltage: <strong>${vV} V</strong>`;
+        } else {
+            panel.className = 'mt-4 p-4 rounded-xl border text-sm font-medium bg-red-100 border-red-500 text-red-900';
+            panel.innerHTML = '<i class="fa-solid fa-circle-xmark mr-2 text-red-600"></i><strong>CELL DEAD — 0.00 V.</strong> Distilled water fails because it has no mobile ions. Only an electrolyte (e.g. KNO₃, NaCl) can carry charge across and keep the circuit alive.';
         }
         return;
     }
@@ -419,8 +476,8 @@ function drawCircuitAnnotations() {
     // ── ③ Reduction badge — above Cu electrode ────────────────────────────
     badge(cw * 0.75, ch * 0.27, '\u2462', '#d97706');
 
-    // ── ④ Ionic charge-balance arrows — only drawn when bridge is present ─
-    if (saltBridgePresent) {
+    // ── ④ Ionic charge-balance arrows — only drawn when bridge is conductive ─
+    if (bridgeConductive()) {
         // K⁺ travels down the right arm of the bridge → into cathode half-cell
         dashedArrow(cw * 0.645, ch * 0.38, cw * 0.645, ch * 0.65, 'rgba(192,132,252,0.9)', 'K\u207a', 'right');
         badge(cw * 0.715, ch * 0.50, '\u2463', '#7c3aed');
@@ -428,6 +485,14 @@ function drawCircuitAnnotations() {
         // NO₃⁻ travels down the left arm of the bridge → into anode half-cell
         dashedArrow(cw * 0.355, ch * 0.38, cw * 0.355, ch * 0.65, 'rgba(74,222,128,0.9)', 'NO\u2083\u207b', 'left');
         badge(cw * 0.285, ch * 0.50, '\u2463', '#15803d');
+    } else if (saltBridgePresent) {
+        // Bridge present but water: show ④ badge with 'no ions' message
+        badge(cw * 0.5, ch * 0.50, '\u2463', '#0e7490');
+        ctx.fillStyle    = 'rgba(125,211,252,0.95)';
+        ctx.font         = `bold ${fs * 0.8}px Arial`;
+        ctx.textAlign    = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('H\u2082O: no mobile ions \u2014 cannot carry charge!', cw * 0.5, ch * 0.56);
     } else {
         // Bridge absent: show ④ badge with a cross to indicate ionic path is broken
         badge(cw * 0.5, ch * 0.50, '\u2463', '#6b7280');
@@ -451,13 +516,13 @@ function animate() {
         // Electrons slow down and stop spawning as voltage drops
         if (v > 0.05 && frameCount % 40 === 0) spawnElectron();
 
-        if (saltBridgePresent) {
+        if (bridgeConductive()) {
             if (frameCount % 60 === 0)  spawnCation();
             if (frameCount % 60 === 30) spawnAnion();
             // Recover from any leftover charge imbalance
             if (chargeImbalance > 0) chargeImbalance = Math.max(0, chargeImbalance - 0.8);
         } else {
-            // Remove any in-flight bridge particles — ions cannot flow without the bridge
+            // Remove any in-flight bridge particles — ions cannot flow
             particles = particles.filter(p => p.type === 'electron');
             // Build up charge imbalance (~5 seconds to reach 100)
             chargeImbalance = Math.min(100, chargeImbalance + 0.35);
@@ -500,12 +565,33 @@ function toggleSaltBridge() {
     drawScene();
 }
 
+function toggleBridgeFluid() {
+    bridgeFluid = bridgeFluid === 'kno3' ? 'water' : 'kno3';
+    const btn = document.getElementById('btn-fluid');
+    if (!btn) return;
+    if (bridgeFluid === 'water') {
+        btn.innerHTML = '<i class="fa-solid fa-flask"></i> Use KNO₃ Solution';
+        btn.className = 'bg-cyan-600 hover:bg-cyan-700 text-white px-4 py-2 rounded shadow font-semibold flex items-center gap-2';
+    } else {
+        btn.innerHTML = '<i class="fa-solid fa-droplet"></i> Use Distilled Water';
+        btn.className = 'bg-sky-500 hover:bg-sky-600 text-white px-4 py-2 rounded shadow font-semibold flex items-center gap-2';
+    }
+    updateInfoPanel();
+    drawScene();
+}
+
 function resetSimulation() {
     isPlaying = false;
     particles = [];
     frameCount = 0;
     chargeImbalance = 0;
     saltBridgePresent = true;
+    bridgeFluid = 'kno3';
+    const fluidBtn = document.getElementById('btn-fluid');
+    if (fluidBtn) {
+        fluidBtn.innerHTML = '<i class="fa-solid fa-droplet"></i> Use Distilled Water';
+        fluidBtn.className = 'bg-sky-500 hover:bg-sky-600 text-white px-4 py-2 rounded shadow font-semibold flex items-center gap-2';
+    }
 
     const playBtn = document.getElementById('sim-play');
     if (playBtn) {
