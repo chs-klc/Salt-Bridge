@@ -1,300 +1,179 @@
 /**
- * simulation.js
- * Handles the 2D Canvas animation of the Zinc-Copper galvanic cell.
- * Supports interactive salt bridge toggle to demonstrate charge buildup consequences.
+ * porouspot.js
+ * Porous Pot simulation for the simple chemical cell.
  */
 
 let ppCanvas, ppCtx;
-let ppAnimationId;
+let ppAnimationId = null;
 let ppIsPlaying = false;
-let ppParticles = [];
-let frameCount = 0;
 let ppSimInitialised = false;
-
-// --- Salt bridge & charge imbalance state ---
-let ppSaltBridgePresent = true;
-let ppChargeImbalance = 0; // 0–100: how much charge has built up due to missing bridge
-let ppShowCircuitExplain = false;  // toggle for ionic circuit explanation overlay
-let ppBridgeFluid = 'kno3';        // 'kno3' | 'water' — what fills the salt bridge
-
-// Fixed ppCanvas-fraction positions for charge accumulation symbols inside each beaker.
-// Anode beaker (x: 10%–40%), avoiding electrode (x: 22%–28%).
-const PP_ANODE_CHARGE_POS = [
-    [0.135, 0.60], [0.350, 0.67], [0.160, 0.78],
-    [0.370, 0.82], [0.130, 0.87], [0.320, 0.55], [0.175, 0.53]
-];
-// Cathode beaker (x: 60%–90%), avoiding electrode (x: 72%–78%).
-const PP_CATHODE_CHARGE_POS = [
-    [0.635, 0.60], [0.850, 0.67], [0.660, 0.78],
-    [0.870, 0.82], [0.630, 0.87], [0.820, 0.55], [0.675, 0.53]
-];
-
-/** Returns the current effective voltage level: 1 = full, 0 = dead. */
-function ppGetVoltageLevel() {
-    return Math.max(0, 1 - ppChargeImbalance / 100);
-}
-
-/** True when the bridge can actually carry ions (present AND filled with KNO₃). */
-function ppBridgeConductive() {
-    return ppSaltBridgePresent && ppBridgeFluid === 'kno3';
-}
-
-// ---------------------------------------------------------------------------
-// Initialisation
-// ---------------------------------------------------------------------------
+let ppParticles = [];
 
 function initPorousPotSim() {
     if (ppSimInitialised) return;
-    ppCanvas = document.getElementById('ppChemCanvas');
+    ppCanvas = document.getElementById("ppChemCanvas");
     if (!ppCanvas) return;
-    ppCtx = ppCanvas.getContext('2d');
-    window.addEventListener('resize', resizePorousPotCanvas);
+    ppCtx = ppCanvas.getContext("2d");
     resizePorousPotCanvas();
-    ppAnimate();
+    window.addEventListener("resize", resizePorousPotCanvas);
+    spawnPPParticles();
+    ppLoop();
     ppSimInitialised = true;
 }
 
-// ---------------------------------------------------------------------------
-// Canvas sizing
-// ---------------------------------------------------------------------------
-
 function resizePorousPotCanvas() {
     if (!ppCanvas) return;
-    const container = document.getElementById('pp-sim-container');
+    var container = document.getElementById("pp-sim-container");
     if (container && container.clientWidth > 0) {
-        ppCanvas.width = container.clientWidth;
-        ppCanvas.height = ppCanvas.width * 0.5625; // 16:9
+        ppCanvas.width  = container.clientWidth;
+        ppCanvas.height = Math.round(container.clientWidth * 0.5625);
     } else {
-        ppCanvas.width = 800;
+        ppCanvas.width  = 800;
         ppCanvas.height = 450;
     }
 }
 
-    ppDrawScene();
+function spawnPPParticles() {
+    ppParticles = [];
+    for (var i = 0; i < 3; i++) ppParticles.push({ type:"electron", progress: i/3, speed: 0.004 + Math.random()*0.002 });
+    for (var i = 0; i < 3; i++) ppParticles.push({ type:"cation",   progress: i/3, speed: 0.002 + Math.random()*0.001 });
+    for (var i = 0; i < 3; i++) ppParticles.push({ type:"anion",    progress: i/3, speed: 0.002 + Math.random()*0.001 });
 }
 
-// ---------------------------------------------------------------------------
-// Drawing
-// ---------------------------------------------------------------------------
+function ppLoop() {
+    if (ppIsPlaying) {
+        ppParticles.forEach(function(p) {
+            p.progress += p.speed;
+            if (p.progress >= 1) p.progress -= 1;
+        });
+    }
+    ppDraw();
+    ppAnimationId = requestAnimationFrame(ppLoop);
+}
 
-function ppDrawScene() {
+function ppDraw() {
     if (!ppCanvas || !ppCtx) return;
-    const cw = ppCanvas.width, ch = ppCanvas.height;
-    const v = ppGetVoltageLevel();
+    var W = ppCanvas.width, H = ppCanvas.height, ctx = ppCtx;
 
-    ppCtx.clearRect(0, 0, cw, ch);
+    ctx.clearRect(0,0,W,H);
+    ctx.fillStyle = "#0f172a";
+    ctx.fillRect(0,0,W,H);
 
-    // --- Big Container ---
-    ppCtx.lineWidth = 4;
-    ppCtx.strokeStyle = '#94a3b8';
-    ppCtx.beginPath();
-    ppCtx.moveTo(cw*0.1, ch*0.4); 
-    ppCtx.lineTo(cw*0.1, ch*0.9); 
-    ppCtx.lineTo(cw*0.9, ch*0.9); 
-    ppCtx.lineTo(cw*0.9, ch*0.4); 
-    ppCtx.stroke();
-    
-    // --- Porous Pot line in the middle ---
-    ppCtx.setLineDash([10, 10]);
-    ppCtx.beginPath(); 
-    ppCtx.moveTo(cw*0.5, ch*0.5); 
-    ppCtx.lineTo(cw*0.5, ch*0.9); 
-    ppCtx.stroke();
-    ppCtx.setLineDash([]);
-    ppCtx.fillStyle = '#64748b';
-    ppCtx.font = '14px sans-serif';
-    ppCtx.textAlign = 'center';
-    ppCtx.fillText('Porous Pot', cw*0.5, ch*0.45);
+    var cxl=W*0.08, cxr=W*0.92, cxt=H*0.38, cxb=H*0.92;
 
-    // --- Solutions ---
-    // ZnSO4 Side (left)
-    ppCtx.fillStyle = 'rgba(56, 189, 248, 0.2)';
-    ppCtx.fillRect(cw*0.105, ch*0.5, cw*0.395, ch*0.395);
-    // CuSO4 side (right)
-    ppCtx.fillStyle = 'rgba(59, 130, 246, 0.4)';
-    ppCtx.fillRect(cw*0.5, ch*0.5, cw*0.395, ch*0.395);
+    // Container walls
+    ctx.lineWidth=3; ctx.strokeStyle="#94a3b8";
+    ctx.beginPath(); ctx.moveTo(cxl,cxt); ctx.lineTo(cxl,cxb); ctx.lineTo(cxr,cxb); ctx.lineTo(cxr,cxt); ctx.stroke();
 
-    // --- Wire & Voltmeter ---
-    ppCtx.lineWidth = 3;
-    ppCtx.strokeStyle = '#475569';
-    ppCtx.beginPath();
-    ppCtx.moveTo(cw*0.25, ch*0.5); 
-    ppCtx.lineTo(cw*0.25, ch*0.2); 
-    ppCtx.lineTo(cw*0.75, ch*0.2); 
-    ppCtx.lineTo(cw*0.75, ch*0.5); 
-    ppCtx.stroke();
+    // Solutions
+    ctx.fillStyle="rgba(56,189,248,0.18)"; ctx.fillRect(cxl+3, cxt+H*0.12, W*0.42-6, cxb-cxt-H*0.12-3);
+    ctx.fillStyle="rgba(59,130,246,0.35)"; ctx.fillRect(W*0.5, cxt+H*0.12, W*0.42-3, cxb-cxt-H*0.12-3);
 
-    // Voltmeter circle
-    ppCtx.beginPath(); 
-    ppCtx.arc(cw*0.5, ch*0.2, ch*0.08, 0, Math.PI*2); 
-    ppCtx.fillStyle = '#1e293b'; 
-    ppCtx.fill(); 
-    ppCtx.stroke();
-    
-    // Voltage reading
-    const volts = (1.10 * v).toFixed(2);
-    ppCtx.fillStyle = '#10b981';
-    ppCtx.font = 'bold 20px monospace';
-    ppCtx.textAlign = 'center';
-    ppCtx.textBaseline = 'middle';
-    ppCtx.fillText(volts + ' V', cw*0.5, ch*0.2 + 6);
+    // Porous pot divider
+    ctx.setLineDash([8,8]); ctx.lineWidth=2; ctx.strokeStyle="#f59e0b";
+    ctx.beginPath(); ctx.moveTo(W*0.5, cxt+H*0.10); ctx.lineTo(W*0.5, cxb-3); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle="#fbbf24"; ctx.font="bold "+Math.round(W*0.022)+"px sans-serif";
+    ctx.textAlign="center"; ctx.textBaseline="middle";
+    ctx.fillText("Porous Pot", W*0.5, cxt+H*0.07);
 
-    // --- Electrodes ---
-    // Zn (Anode)
-    ppCtx.fillStyle = '#94a3b8';
-    ppCtx.fillRect(cw*0.22, ch*0.3, cw*0.06, ch*0.4);
-    ppCtx.fillStyle = '#fff';
-    ppCtx.font = 'bold 16px sans-serif';
-    ppCtx.textAlign = 'center';
-    ppCtx.textBaseline = 'middle';
-    ppCtx.fillText('Zn', cw*0.25, ch*0.35);
-    
-    // Cu (Cathode)
-    ppCtx.fillStyle = '#b45309';
-    ppCtx.fillRect(cw*0.72, ch*0.3, cw*0.06, ch*0.4);
-    ppCtx.fillStyle = '#fff';
-    ppCtx.fillText('Cu', cw*0.75, ch*0.35);
+    // Electrodes
+    var eW=W*0.05, eH=H*0.42, eTop=cxt+H*0.03;
+    ctx.fillStyle="#94a3b8"; ctx.fillRect(W*0.26-eW/2, eTop, eW, eH);
+    ctx.fillStyle="#f8fafc"; ctx.font="bold "+Math.round(W*0.028)+"px sans-serif";
+    ctx.textAlign="center"; ctx.textBaseline="middle";
+    ctx.fillText("Zn", W*0.26, eTop+eH*0.15);
+    ctx.fillStyle="#b45309"; ctx.fillRect(W*0.74-eW/2, eTop, eW, eH);
+    ctx.fillStyle="#fef3c7"; ctx.fillText("Cu", W*0.74, eTop+eH*0.15);
 
-    // --- Particles ---
-    ppParticles.forEach(p => {
-        if (p.type === 'electron') {
-            let px = cw*0.25, py = ch*0.45;
-            if (p.progress < 0.3) { 
-                py = ch*0.45 - (ch*0.25)*(p.progress/0.3); 
-            } else if (p.progress < 0.7) { 
-                py = ch*0.2; 
-                px = cw*0.25 + (cw*0.5)*((p.progress - 0.3)/0.4); 
-            } else { 
-                px = cw*0.75; 
-                py = ch*0.2 + (ch*0.25)*((p.progress - 0.7)/0.3); 
-            }
-            ppCtx.beginPath(); 
-            ppCtx.arc(px, py, 4, 0, Math.PI*2);
-            ppCtx.fillStyle = '#eab308'; 
-            ppCtx.fill();
-        } else if (p.type === 'cation') {
-            // Zn2+ moving left to right through porous pot
-            let px = cw*0.4 + (cw*0.2)*p.progress;
-            let py = ch*0.7;
-            ppCtx.beginPath(); 
-            ppCtx.arc(px, py, 6, 0, Math.PI*2);
-            ppCtx.fillStyle = '#c084fc'; 
-            ppCtx.fill();
-            ppCtx.fillStyle = '#fff'; 
-            ppCtx.font = 'bold 10px sans-serif'; 
-            ppCtx.textAlign = 'center';
-            ppCtx.textBaseline = 'middle';
-            ppCtx.fillText('+', px, py);
-        } else if (p.type === 'anion') {
-            // SO42- moving right to left through porous pot
-            let px = cw*0.6 - (cw*0.2)*p.progress;
-            let py = ch*0.8;
-            ppCtx.beginPath(); 
-            ppCtx.arc(px, py, 6, 0, Math.PI*2);
-            ppCtx.fillStyle = '#4ade80'; 
-            ppCtx.fill();
-            ppCtx.fillStyle = '#fff'; 
-            ppCtx.font = 'bold 10px sans-serif'; 
-            ppCtx.textAlign = 'center';
-            ppCtx.textBaseline = 'middle';
-            ppCtx.fillText('-', px, py);
+    // Wire
+    var wireY=H*0.12;
+    ctx.lineWidth=3; ctx.strokeStyle="#cbd5e1";
+    ctx.beginPath(); ctx.moveTo(W*0.26,eTop); ctx.lineTo(W*0.26,wireY); ctx.lineTo(W*0.74,wireY); ctx.lineTo(W*0.74,eTop); ctx.stroke();
+
+    // Voltmeter
+    var vmR=Math.min(W,H)*0.07;
+    ctx.beginPath(); ctx.arc(W*0.5, wireY, vmR, 0, Math.PI*2);
+    ctx.fillStyle="#1e293b"; ctx.fill();
+    ctx.lineWidth=2; ctx.strokeStyle="#475569"; ctx.stroke();
+    ctx.fillStyle= ppIsPlaying ? "#10b981" : "#64748b";
+    ctx.font="bold "+Math.round(W*0.025)+"px monospace";
+    ctx.textAlign="center"; ctx.textBaseline="middle";
+    ctx.fillText(ppIsPlaying?"1.10 V":"0.00 V", W*0.5, wireY);
+
+    // Labels
+    ctx.font=Math.round(W*0.022)+"px sans-serif"; ctx.fillStyle="#94a3b8";
+    ctx.textAlign="center"; ctx.textBaseline="middle";
+    ctx.fillText("ZnSO\u2084(aq)", W*0.29, cxb-H*0.05);
+    ctx.fillText("CuSO\u2084(aq)", W*0.71, cxb-H*0.05);
+    ctx.font="italic "+Math.round(W*0.018)+"px sans-serif";
+    ctx.fillStyle="#fca5a5"; ctx.fillText("Zn \u2192 Zn\u00B2\u207A + 2e\u207B  (oxidation)", W*0.29, H*0.96);
+    ctx.fillStyle="#86efac"; ctx.fillText("Cu\u00B2\u207A + 2e\u207B \u2192 Cu  (reduction)", W*0.71, H*0.96);
+
+    // Particles (only when playing)
+    if (!ppIsPlaying) return;
+    ppParticles.forEach(function(p) {
+        var px, py;
+        if (p.type==="electron") {
+            var t=p.progress;
+            if (t<0.25)       { px=W*0.26; py=eTop-(t/0.25)*(eTop-wireY); }
+            else if (t<0.75)  { px=W*0.26+((t-0.25)/0.5)*(W*0.48); py=wireY; }
+            else               { px=W*0.74; py=wireY+((t-0.75)/0.25)*(eTop-wireY); }
+            ctx.beginPath(); ctx.arc(px,py,W*0.012,0,Math.PI*2);
+            ctx.fillStyle="#eab308"; ctx.fill();
+            ctx.fillStyle="#000"; ctx.font="bold "+Math.round(W*0.016)+"px sans-serif";
+            ctx.textAlign="center"; ctx.textBaseline="middle"; ctx.fillText("e\u207B",px,py);
+        } else if (p.type==="cation") {
+            px=W*0.35+p.progress*W*0.30; py=H*0.68;
+            ctx.beginPath(); ctx.arc(px,py,W*0.016,0,Math.PI*2);
+            ctx.fillStyle="#c084fc"; ctx.fill();
+            ctx.fillStyle="#fff"; ctx.font="bold "+Math.round(W*0.015)+"px sans-serif";
+            ctx.textAlign="center"; ctx.textBaseline="middle"; ctx.fillText("Zn\u00B2\u207A",px,py);
+        } else {
+            px=W*0.65-p.progress*W*0.30; py=H*0.79;
+            ctx.beginPath(); ctx.arc(px,py,W*0.016,0,Math.PI*2);
+            ctx.fillStyle="#4ade80"; ctx.fill();
+            ctx.fillStyle="#000"; ctx.font="bold "+Math.round(W*0.014)+"px sans-serif";
+            ctx.textAlign="center"; ctx.textBaseline="middle"; ctx.fillText("SO\u2084\u00B2\u207B",px,py);
         }
     });
 }
 
-// ---------------------------------------------------------------------------
-// Info / consequence panel
-// ---------------------------------------------------------------------------
-
-function ppUpdateInfoPanel() {
-    const panel = document.getElementById('pp-consequence-panel');
-    if (!panel) return;
-    const v = ppGetVoltageLevel();
-    const vPct = Math.round(v * 100);
-    
-    if (!ppIsPlaying) {
-        panel.className = 'mt-4 p-4 rounded-xl border text-sm font-medium bg-slate-100 border-slate-200 text-slate-600';
-        panel.innerHTML = '<i class="fa-solid fa-circle-info mr-2"></i>Press <strong>Play</strong> to start observing the Porous Pot mechanism!';
-    } else {
-        panel.className = 'mt-4 p-4 rounded-xl border text-sm font-medium bg-emerald-100 border-emerald-300 text-emerald-800';
-        panel.innerHTML = '<i class="fa-solid fa-check-circle mr-2"></i><strong>Running!</strong> The porous boundary allows zinc and sulfate ions to migrate between half-cells, maintaining electrical neutrality and ensuring continuous electron flow.';
-    }
-}
-
-function ppToggleCircuitExplain() {}
-function drawCircuitAnnotations() {}
-function ppAnimate() {
-    ppAnimationId = requestAnimationFrame(ppAnimate);
-    
-    if (ppIsPlaying) {
-        const v = ppGetVoltageLevel();
-        if(v > 0) {
-            ppParticles.forEach(p => {
-                p.progress += p.speed;
-                if (p.progress >= 1.0) p.progress -= 1.0;
-            });
-            
-            if(ppParticles.length === 0) {
-                for(let i=0; i<3; i++) ppParticles.push({ type: 'electron', progress: i * 0.33, speed: 0.005 });
-                for(let i=0; i<2; i++) ppParticles.push({ type: 'cation', progress: i * 0.5, speed: 0.002 });
-                for(let i=0; i<2; i++) ppParticles.push({ type: 'anion', progress: i * 0.5, speed: 0.002 });
-            }
-        }
-    }
-    
-    ppDrawScene();
-}
-
 function togglePPSimulation() {
-    const btn = document.getElementById('pp-sim-play');
     ppIsPlaying = !ppIsPlaying;
+    var btn = document.getElementById("pp-sim-play");
     if (btn) {
         if (ppIsPlaying) {
             btn.innerHTML = '<i class="fa-solid fa-pause"></i> Pause';
-            btn.className = 'bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded shadow font-semibold flex items-center gap-2';
+            btn.className = "bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded shadow font-semibold flex items-center gap-2";
         } else {
             btn.innerHTML = '<i class="fa-solid fa-play"></i> Play';
-            btn.className = 'bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded shadow font-semibold flex items-center gap-2';
+            btn.className = "bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded shadow font-semibold flex items-center gap-2";
         }
     }
-    if (ppIsPlaying) {
-        cancelAnimationFrame(ppAnimationId);
-        ppAnimate();
-    } else {
-        ppUpdateInfoPanel();
-    }
+    ppUpdateInfoPanel();
 }
 
 function resetPPSimulation() {
     ppIsPlaying = false;
-    ppParticles = [];
-    frameCount = 0;
-    ppChargeImbalance = 0;
-    const playBtn = document.getElementById('pp-sim-play');
-    if (playBtn) {
-        playBtn.innerHTML = '<i class="fa-solid fa-play"></i> Play';
-        playBtn.className = 'bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded shadow font-semibold flex items-center gap-2';
+    var btn = document.getElementById("pp-sim-play");
+    if (btn) {
+        btn.innerHTML = '<i class="fa-solid fa-play"></i> Play';
+        btn.className = "bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded shadow font-semibold flex items-center gap-2";
     }
-    cancelAnimationFrame(ppAnimationId);
+    spawnPPParticles();
     ppUpdateInfoPanel();
-    ppDrawScene();
+    ppDraw();
 }
 
-
-/**
- * Called once when the simulation tab is first opened.
- * Grabs the ppCanvas element and starts the render loop.
- */
-function initPorousPotSim() {
-    if (ppSimInitialised) return;
-
-    ppCanvas = document.getElementById('ppChemCanvas');
-    if (!ppCanvas) return;
-    ppCtx = ppCanvas.getContext('2d');
-
-    window.addEventListener('resize', resizePorousPotCanvas);
-    resizePorousPotCanvas();
-    ppAnimate();
-    ppSimInitialised = true;
+function ppUpdateInfoPanel() {
+    var panel = document.getElementById("pp-consequence-panel");
+    if (!panel) return;
+    if (!ppIsPlaying) {
+        panel.className = "mt-4 p-4 rounded-xl border text-sm font-medium bg-slate-100 border-slate-200 text-slate-600";
+        panel.innerHTML = "<i class=\"fa-solid fa-circle-info mr-2\"></i>Press <strong>Play</strong> to start observing the Porous Pot mechanism!";
+    } else {
+        panel.className = "mt-4 p-4 rounded-xl border text-sm font-medium bg-emerald-100 border-emerald-300 text-emerald-800";
+        panel.innerHTML = "<i class=\"fa-solid fa-bolt mr-2\"></i><strong>Cell is running!</strong> �X Zn oxidises, releasing Zn\u00B2\u207A ions. Electrons travel through the external wire to reduce Cu\u00B2\u207A at the cathode. Ions migrate through the <strong>porous pot</strong> to maintain charge balance.";
+    }
 }
-
