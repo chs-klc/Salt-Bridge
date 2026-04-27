@@ -34,9 +34,12 @@ function resizePorousPotCanvas() {
 
 function spawnPPParticles() {
     ppParticles = [];
-    for (var i = 0; i < 3; i++) ppParticles.push({ type:"electron", progress: i/3, speed: 0.004 + Math.random()*0.002 });
-    for (var i = 0; i < 3; i++) ppParticles.push({ type:"cation",   progress: i/3, speed: 0.002 + Math.random()*0.001 });
-    for (var i = 0; i < 3; i++) ppParticles.push({ type:"anion",    progress: i/3, speed: 0.002 + Math.random()*0.001 });
+    // Electrons stagger around the wire loop
+    for (var i = 0; i < 3; i++) ppParticles.push({ type:"electron", progress: i/3,   speed: 0.004 + Math.random()*0.002 });
+    // Cations start in Zn half (left side, progress 0–0.45 maps to x 0.35–0.485, left of porous pot at 0.5)
+    for (var i = 0; i < 3; i++) ppParticles.push({ type:"cation",   progress: i*0.13, speed: 0.002 + Math.random()*0.001 });
+    // Anions start in Cu half (left of porous pot from the right, progress 0–0.45 keeps them in right half)
+    for (var i = 0; i < 3; i++) ppParticles.push({ type:"anion",    progress: i*0.13, speed: 0.002 + Math.random()*0.001 });
 }
 
 function ppLoop() {
