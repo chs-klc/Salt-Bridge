@@ -110,8 +110,8 @@ function ppDraw() {
     ctx.fillStyle="#fca5a5"; ctx.fillText("Zn \u2192 Zn\u00B2\u207A + 2e\u207B  (oxidation)", W*0.29, H*0.96);
     ctx.fillStyle="#86efac"; ctx.fillText("Cu\u00B2\u207A + 2e\u207B \u2192 Cu  (reduction)", W*0.71, H*0.96);
 
-    // Particles (only when playing)
-    if (!ppIsPlaying) return;
+    // Particles (draw whenever they exist)
+    if (ppParticles.length === 0) return;
     ppParticles.forEach(function(p) {
         var px, py;
         if (p.type==="electron") {
@@ -174,6 +174,6 @@ function ppUpdateInfoPanel() {
         panel.innerHTML = "<i class=\"fa-solid fa-circle-info mr-2\"></i>Press <strong>Play</strong> to start observing the Porous Pot mechanism!";
     } else {
         panel.className = "mt-4 p-4 rounded-xl border text-sm font-medium bg-emerald-100 border-emerald-300 text-emerald-800";
-        panel.innerHTML = "<i class=\"fa-solid fa-bolt mr-2\"></i><strong>Cell is running!</strong> ¡X Zn oxidises, releasing Zn\u00B2\u207A ions. Electrons travel through the external wire to reduce Cu\u00B2\u207A at the cathode. Ions migrate through the <strong>porous pot</strong> to maintain charge balance.";
+        panel.innerHTML = "<i class=\"fa-solid fa-bolt mr-2\"></i><strong>Cell is running!</strong> ï¿½X Zn oxidises, releasing Zn\u00B2\u207A ions. Electrons travel through the external wire to reduce Cu\u00B2\u207A at the cathode. Ions migrate through the <strong>porous pot</strong> to maintain charge balance.";
     }
 }
