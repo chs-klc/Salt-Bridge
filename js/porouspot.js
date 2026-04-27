@@ -16,7 +16,6 @@ function initPorousPotSim() {
     ppCtx = ppCanvas.getContext("2d");
     resizePorousPotCanvas();
     window.addEventListener("resize", resizePorousPotCanvas);
-    spawnPPParticles();
     ppLoop();
     ppSimInitialised = true;
 }
@@ -141,6 +140,7 @@ function ppDraw() {
 
 function togglePPSimulation() {
     ppIsPlaying = !ppIsPlaying;
+    if (ppIsPlaying && ppParticles.length === 0) spawnPPParticles();
     var btn = document.getElementById("pp-sim-play");
     if (btn) {
         if (ppIsPlaying) {
@@ -156,6 +156,7 @@ function togglePPSimulation() {
 
 function resetPPSimulation() {
     ppIsPlaying = false;
+    ppParticles = [];
     var btn = document.getElementById("pp-sim-play");
     if (btn) {
         btn.innerHTML = '<i class="fa-solid fa-play"></i> Play';
