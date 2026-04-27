@@ -49,6 +49,7 @@ function initPorousPotSim() {
     if (!ppCanvas) return;
     ppCtx = ppCanvas.getContext('2d');
     window.addEventListener('resize', resizePorousPotCanvas);
+    resizePorousPotCanvas();
     ppAnimate();
     ppSimInitialised = true;
 }
@@ -63,7 +64,12 @@ function resizePorousPotCanvas() {
     if (container && container.clientWidth > 0) {
         ppCanvas.width = container.clientWidth;
         ppCanvas.height = ppCanvas.width * 0.5625; // 16:9
+    } else {
+        ppCanvas.width = 800;
+        ppCanvas.height = 450;
     }
+}
+
     ppDrawScene();
 }
 
@@ -318,27 +324,25 @@ function ppUpdateInfoPanel() {
 function ppToggleCircuitExplain() {}
 function drawCircuitAnnotations() {}
 function ppAnimate() {
-    if (!ppSimRunning) return;
+    ppAnimationId = requestAnimationFrame(ppAnimate);
     
-    // Update logic
-    const v = ppGetVoltageLevel();
-    if(v > 0) {
-        ppParticles.forEach(p => {
-            p.progress += p.speed;
-            if (p.progress >= 1.0) p.progress -= 1.0;
-        });
-        
-        // Ensure we always have some simple particles
-        if(ppParticles.length === 0) {
-            for(let i=0; i<3; i++) ppParticles.push({ type: 'electron', progress: i * 0.33, speed: 0.005 });
-            for(let i=0; i<2; i++) ppParticles.push({ type: 'cation', progress: i * 0.5, speed: 0.002 });
-            for(let i=0; i<2; i++) ppParticles.push({ type: 'anion', progress: i * 0.5, speed: 0.002 });
+    if (ppIsPlaying) {
+        const v = ppGetVoltageLevel();
+        if(v > 0) {
+            ppParticles.forEach(p => {
+                p.progress += p.speed;
+                if (p.progress >= 1.0) p.progress -= 1.0;
+            });
+            
+            if(ppParticles.length === 0) {
+                for(let i=0; i<3; i++) ppParticles.push({ type: 'electron', progress: i * 0.33, speed: 0.005 });
+                for(let i=0; i<2; i++) ppParticles.push({ type: 'cation', progress: i * 0.5, speed: 0.002 });
+                for(let i=0; i<2; i++) ppParticles.push({ type: 'anion', progress: i * 0.5, speed: 0.002 });
+            }
         }
     }
     
     ppDrawScene();
-    
-    ppAnimationId = requestAnimationFrame(ppAnimate);
 }
 
 function togglePPSimulation() {
@@ -389,6 +393,7 @@ function initPorousPotSim() {
     ppCtx = ppCanvas.getContext('2d');
 
     window.addEventListener('resize', resizePorousPotCanvas);
+    resizePorousPotCanvas();
     ppAnimate();
     ppSimInitialised = true;
 }
