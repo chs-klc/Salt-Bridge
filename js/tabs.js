@@ -3,7 +3,7 @@
  * Handles tab navigation: loading tab HTML fragments and switching between them.
  */
 
-const TAB_IDS = ['concepts', 'simulation', 'exam', 'misconceptions', 'summary', 'quiz'];
+const TAB_IDS = ['concepts', 'simulation', 'porouspot', 'exam', 'misconceptions', 'summary', 'quiz'];
 
 /**
  * Fetch and inject a tab's HTML content from tabs/<tabId>.html.
@@ -55,6 +55,11 @@ async function switchTab(tabId) {
         setTimeout(() => {
             initSimulation();
             resizeCanvas();
+        }, 50);
+    } else if (tabId === 'porouspot') {
+        setTimeout(() => {
+            initPorousPotSim();
+            resizePorousPotCanvas();
         }, 50);
     }
 }

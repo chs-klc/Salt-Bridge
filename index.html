@@ -12,7 +12,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <!-- Custom Styles -->
-    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/styles.css?v=1777280292">
 
     <!-- MathJax for Chemical Equations -->
     <script>
@@ -55,6 +55,9 @@
                 <button onclick="switchTab('simulation')" id="btn-simulation" class="tab-btn w-full text-left px-4 py-3 rounded-lg font-semibold text-slate-600 hover:bg-slate-100 transition-colors flex items-center gap-3">
                     <i class="fa-solid fa-bolt w-5 text-center"></i> Interactive Simulation
                 </button>
+                <button onclick="switchTab('porouspot')" id="btn-porouspot" class="tab-btn w-full text-left px-4 py-3 rounded-lg font-semibold text-slate-600 hover:bg-slate-100 transition-colors flex items-center gap-3">
+                    <i class="fa-solid fa-jar w-5 text-center"></i> Porous Pot Simulation
+                </button>
                 <button onclick="switchTab('exam')" id="btn-exam" class="tab-btn w-full text-left px-4 py-3 rounded-lg font-semibold text-slate-600 hover:bg-slate-100 transition-colors flex items-center gap-3">
                     <i class="fa-solid fa-pen-to-square w-5 text-center"></i> Exam Challenge
                 </button>
@@ -76,6 +79,7 @@
             <!-- Each tab div is an empty shell; content is loaded dynamically by tabs.js -->
             <div id="tab-concepts"       class="tab-content"></div>
             <div id="tab-simulation"     class="tab-content"></div>
+            <div id="tab-porouspot"      class="tab-content"></div>
             <div id="tab-exam"           class="tab-content"></div>
             <div id="tab-misconceptions" class="tab-content"></div>
             <div id="tab-summary"        class="tab-content"></div>
@@ -86,8 +90,9 @@
 
     <!-- JavaScript -->
     <script src="js/simulation.js"></script>
+    <script src="js/porouspot.js?v=1777280292"></script>
     <script src="js/quiz.js"></script>
     <script src="js/exam.js"></script>
-    <script src="js/tabs.js"></script>
+    <script src="js/tabs.js?v=1777280292"></script>
 </body>
 </html>
